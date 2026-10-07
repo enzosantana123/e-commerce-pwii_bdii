@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Chronnus — tecnologia para aproveitar melhor o seu tempo.">
+  <title>Chronnus — Tecnologia no seu tempo</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=Orbitron:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      /* Nova Paleta de Cores: Vinho e Dourado */
+      --wine-dark: #2d334a;
+      --wine-main: #293740;
+      --wine-light: #2d334a;
+      --gold-accent: #33ebaa;
+      --gold-bright: #3bffb9;
+      --gold-muted: #1bcb8d;
+      
+      --bg-body: #011815; /* Fundo geral muito escuro */
+      --white: #ffffff;
+      --text-main: #F8F0E3; /* Off-white suave para leitura agradável no escuro */
+      --text-muted: #D9C5C5;
+      --line: rgba(55, 212, 173, 0.2); /* Linhas divisórias douradas e sutis */
+      
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    
+    body {
+      margin: 0;
+      font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text-main);
+      background: var(--bg-body);
+    }
+    
+    h1, h2, h3, .brand-name {
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    a { text-decoration: none; color: inherit; }
+    button { font: inherit; }
+
+    
+    @keyframes pulse-green {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(119, 246, 206, 0.6); }
+      70% { transform: scale(1.08); box-shadow: 0 0 0 12px rgba(212, 175, 55, 0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); }
+    }
+
+    @keyframes float-element {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-15px); }
+      100% { transform: translateY(0px); }
+    }
+
+    @keyframes glow-text {
+      0% { text-shadow: 0 0 10px rgba(41, 139, 103, 0.2); }
+      50% { text-shadow: 0 0 25px rgba(139, 230, 197, 0.6); }
+      100% { text-shadow: 0 0 10px rgba(41, 139, 103, 0.2); }
+    }
+
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      height: 78px;
+      background: linear-gradient(100deg, var(--wine-dark), var(--wine-main) 60%, #44816d);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(12px);
+    }
+    .nav {
+      max-width: 1380px;
+      height: 100%;
+      margin: auto;
+      padding: 0 30px;
+      display: flex;
+      align-items: center;
+      gap: 38px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      min-width: 240px;
+      color: var(--gold-bright);
+      height: 100%;
+    }
+    .brand-logo {
+      max-height: 56px;
+      width: auto;
+      object-fit: contain;
+    }
+    .brand-logo2{
+      max-width: 430px;
+      min-width: 20px;
+      object-fit: contain;
+    }
+    .menu {
+      display: flex;
+      align-items: center;
+      gap: 30px;
+      margin-left: auto;
+      color: var(--text-main);
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .menu a {
+      position: relative;
+      padding: 8px 0;
+      opacity: 0.88;
+      transition: 0.2s;
+    }
+    .menu a:hover { opacity: 1; color: var(--gold-bright); }
+    .menu a::after {
+      content: "";
+      position: absolute;
+      left: 0; bottom: 0;
+      width: 0; height: 2px;
+      background: var(--gold-accent);
+      transition: 0.25s;
+    }
+    .menu a:hover::after { width: 100%; }
+    
+    .header-cta {
+      margin-left: 4px;
+      background: var(--gold-accent);
+      color: var(--wine-dark);
+      border: 0;
+      padding: 12px 20px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .header-cta:hover { 
+      background: var(--gold-bright);
+      transform: translateY(-2px); 
+      box-shadow: 0 7px 18px rgba(55, 212, 152, 0.3); 
+    }
+    .mobile-toggle {
+      display: none;
+      margin-left: auto;
+      background: none; border: 0; color: var(--gold-accent); font-size: 24px; cursor: pointer;
+    }
+
+    .hero-wrap {
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 28px 30px 0;
+    }
+    .carousel {
+      position: relative;
+      height: 465px;
+      overflow: hidden;
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      background: linear-gradient(110deg, var(--wine-dark), var(--wine-main) 52%, var(--wine-light));
+      border: 1px solid var(--line);
+    }
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: 47% 53%;
+      align-items: center;
+      padding: 52px 62px;
+      opacity: 0;
+      transform: translateX(18px);
+      pointer-events: none;
+      transition: opacity 0.55s ease, transform 0.55s ease;
+      overflow: hidden;
+      z-index: 1;
+    }
+    .slide.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+      z-index: 2;
+    }
+    
+    /* Área destinada aos flyers de imagem */
+    .slide-flyer-bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.4; /* Opacidade para não ofuscar o texto, ajuste conforme necessário */
+      z-index: 0;
+      mix-blend-mode: overlay;
+    }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(34, 42, 70, 0.7), transparent 75%),
+        repeating-linear-gradient(45deg, transparent 0 56px, rgba(212,175,55,0.03) 57px 58px);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .slide-content { position: relative; z-index: 3; max-width: 520px; }
+    
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 12px;
+      border: 1px solid var(--gold-muted);
+      border-radius: 999px;
+      color: var(--gold-bright);
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+      background: rgba(7, 27, 25, 0.6);
+      font-family: 'Orbitron', sans-serif;
+    }
+    .eyebrow .dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--gold-bright);
+      box-shadow: 0 0 11px var(--gold-bright);
+      animation: pulse-gold 2s infinite;
+    }
+    .slide h1 {
+      color: var(--white);
+      font-size: 58px;
+      line-height: .98;
+      letter-spacing: -.02em;
+      margin: 0 0 17px;
+      font-weight: 700;
+    }
+    .slide h1 span { 
+      color: var(--gold-accent); 
+      animation: glow-text 3s infinite alternate;
+    }
+    .slide p {
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.65;
+      max-width: 430px;
+      margin: 0 0 27px;
+    }
+    
+    .actions { display: flex; gap: 12px; align-items: center; }
+    .btn {
+      border: 0;
+      border-radius: 9px;
+      padding: 13px 19px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .btn-primary { background: var(--gold-accent); color: var(--wine-dark); }
+    .btn-primary:hover { 
+      background: var(--gold-bright);
+      transform: translateY(-3px) scale(1.05); 
+      box-shadow: 0 9px 20px rgba(25, 80, 64, 0.3); 
+    }
+    .btn-ghost {
+      color: var(--gold-accent); background: rgba(15, 43, 38, 0.05);
+      border: 1px solid rgba(18, 68, 48, 0.3);
+    }
+    .btn-ghost:hover { 
+      background: rgba(39, 144, 111, 0.15);
+      transform: translateY(-2px);
+      color: var(--gold-bright);
+    }
+
+    /* Arte Visual do Hero adaptada para Vinho/Dourado e flutuante */
+    .visual {
+      height: 100%;
+      position: relative;
+      display: grid;
+      place-items: center;
+      z-index: 3;
+      animation: float-element 6s ease-in-out infinite; /* Animação flutuante sutil */
+    }
+    .visual::after {
+      content: "";
+      position: absolute;
+      align-items: center;
+      width: 420px; height: 420px;
+      border-radius: 50%;
+      background: radial-gradient(circle, 139, 230, 197, 0.6, transparent 64%);
+      filter: blur(3px);
+    }
+
+    /* Arte da Ampulheta 
+    .hourglass {
+      position: relative; width: 270px; height: 310px; z-index: 2;
+      filter: drop-shadow(0 22px 25px rgba(0,0,0,0.4));
+    }
+    .hg-frame {
+      position: absolute; inset: 13px 34px;
+      border-left: 5px solid var(--gold-accent); border-right: 5px solid var(--gold-accent);
+      border-radius: 8px;
+    }
+    .hg-cap {
+      position: absolute; left: 18px; right: 18px; height: 16px; border-radius: 8px;
+      background: var(--gold-bright); box-shadow: 0 0 10px 72, 234, 186, 0.3;
+    }
+    .hg-cap.top { top: 6px; } .hg-cap.bottom { bottom: 6px; }
+    .glass {
+      position: absolute; left: 59px; top: 27px; width: 152px; height: 256px; overflow: hidden;
+      clip-path: polygon(0 0, 100% 0, 70% 48%, 100% 100%, 0 100%, 30% 48%);
+      background: rgba(255, 255, 255, 0.05); border: 2px solid 72, 234, 186, 0.3;
+    }
+    .sand-top {
+      position: absolute; left: 68px; top: 54px; width: 134px; height: 104px;
+      clip-path: polygon(0 0, 100% 0, 70% 100%, 30% 100%);
+      background: linear-gradient(180deg, var(--gold-bright), var(--gold-accent)); opacity: 0.94;
+    }
+    .sand-bottom {
+      position: absolute; left: 69px; bottom: 43px; width: 132px; height: 85px;
+      clip-path: polygon(30% 0, 70% 0, 100% 100%, 0 100%);
+      background: linear-gradient(180deg, var(--gold-accent), #1b6b4f);
+    }
+    .sand-stream {
+      position: absolute; left: 132px; top: 132px; width: 7px; height: 93px;
+      background: var(--gold-accent); border-radius: 99px;
+      box-shadow: 0 0 12px rgba(55, 212, 157, 0.8);
+    }*/
+    .floating-time {
+      position: absolute; right: 8%; top: 20%; color: rgba(16, 67, 46, 0.1);
+      font-size: 120px; font-weight: 800; font-family: 'Orbitron', sans-serif;
+      letter-spacing: -.1em; z-index: 0;
+    }
+
+    .carousel-arrow {
+      position: absolute; z-index: 5; top: 50%; transform: translateY(-50%);
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 1px solid var(--gold-accent);
+      background: rgba(9, 47, 35, 0.5);
+      color: var(--gold-bright); cursor: pointer; font-size: 22px;
+      backdrop-filter: blur(8px); transition: 0.3s;
+    }
+    .carousel-arrow:hover { background: var(--gold-accent); color: var(--wine-dark); }
+    .prev { left: 17px; } .next { right: 17px; }
+    
+    .dots {
+      position: absolute; left: 62px; bottom: 25px; z-index: 5; display: flex; gap: 7px;
+    }
+    .dot-btn {
+      width: 22px; height: 4px; border: 0; border-radius: 4px;
+      background: rgba(55, 212, 154, 0.3); cursor: pointer; padding: 0; transition: 0.25s;
+    }
+    .dot-btn.active { width: 42px; background: var(--gold-bright); }
+    
+    .counter {
+      position: absolute; right: 62px; bottom: 25px; z-index: 5;
+      color: rgba(255, 255, 255, 0.55); font-size: 11px; letter-spacing: .12em;
+    }
+
+    .categories {
+      max-width: 1380px; margin: 0 auto; padding: 25px 30px 10px;
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px;
+    }
+    .cat {
+      background: var(--wine-main); border: 1px solid var(--line);
+      border-radius: 13px; padding: 15px 13px;
+      display: flex; align-items: center; gap: 12px;
+      transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .cat:hover { 
+      transform: translateY(-5px); 
+      box-shadow: 0 9px 22px rgba(0,0,0,0.5); 
+      border-color: var(--gold-accent);
+    }
+    .cat-icon {
+      width: 37px; height: 37px; border-radius: 50%;
+      display: grid; place-items: center;
+      color: var(--wine-dark); background: var(--gold-accent); flex: none;
+      font-weight: bold;
+    }
+    .cat strong { display: block; font-size: 12px; font-family: 'Inter', sans-serif; color: var(--white); }
+    .cat small { color: var(--gold-muted); font-size: 10px; }
+
+    .section { max-width: 1380px; margin: 0 auto; padding: 42px 30px; }
+    .section-head {
+      display: flex; align-items: end; justify-content: space-between; margin-bottom: 20px;
+    }
+    .section-head h2 { margin: 0; font-size: 25px; letter-spacing: -.03em; color: var(--gold-bright); }
+    .section-head p { margin: 5px 0 0; color: var(--text-muted); font-size: 13px; }
+    .link { font-size: 12px; color: var(--gold-accent); font-weight: 700; transition: 0.2s; }
+    .link:hover { color: var(--gold-bright); text-decoration: underline; }
+    
+    .products { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+    .product {
+      background: var(--wine-main); border: 1px solid var(--line);
+      border-radius: 17px; padding: 15px;
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+      /* Novo Efeito Hover para os cartões */
+      transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+    .product:hover { 
+      transform: translateY(-10px) scale(1.02); 
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+      border-color: var(--gold-accent);
+    }
+    .product:hover .product-img { transform: scale(1.1); }
+    
+    .badge {
+      position: absolute; left: 15px; top: 15px;
+      background: var(--gold-accent); color: var(--wine-dark);
+      padding: 5px 8px; border-radius: 6px; font-size: 10px; font-weight: 900;
+      z-index: 10;
+      /* Efeito de pulso contínuo */
+      animation: pulse-gold 2s infinite;
+    }
+    
+    .product-art {
+      height: 180px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(0,0,0,0.2));
+      margin-bottom: 14px; overflow: hidden; padding: 10px;
+    }
+    .product-img {
+      width: 100%; height: 100%; object-fit: contain;
+      transition: transform 0.4s ease;
+      /* Se a imagem enviada tiver fundo branco, 'screen' ou 'plus-lighter' pode ajudar, 
+         mas o ideal em tema escuro é usar PNG transparente. */
+    }
+
+    .product h3 { margin: 0 0 7px; font-size: 14px; color: var(--white); }
+    .product .desc { color: var(--text-muted); font-size: 11px; line-height: 1.5; flex-grow: 1; }
+    .price-row { display: flex; align-items: end; justify-content: space-between; margin-top: 13px; }
+    .price { font-size: 18px; font-weight: 800; font-family: 'Orbitron', sans-serif; color: var(--gold-bright); }
+    .buy {
+      border: 0; background: rgba(55, 212, 183, 0.1); color: var(--gold-accent); border-radius: 8px;
+      padding: 8px 12px; font-size: 11px; font-weight: 700; cursor: pointer;
+      border: 1px solid var(--gold-accent); transition: 0.3s;
+    }
+    .product:hover .buy {
+      background: var(--gold-accent); color: var(--wine-dark);
+    }
+
+    .time-banner { max-width: 1380px; margin: 0 auto 42px; padding: 0 30px; }
+    .time-box {
+      min-height: 150px; border-radius: 19px;
+      background: linear-gradient(100deg, var(--wine-dark), var(--wine-main) 60%, #1c8c69);
+      border: 1px solid var(--gold-accent);
+      color: white; display: flex; align-items: center;
+      justify-content: space-between; gap: 30px; padding: 25px 35px;
+      overflow: hidden; position: relative;
+    }
+    .time-box::before, .time-box::after {
+      content: ""; position: absolute; border: 1px solid rgba(55, 212, 181, 0.15);
+      border-radius: 50%; width: 260px; height: 260px;
+    }
+    .time-box::before { right: -90px; top: -160px; }
+    .time-box::after { right: 30px; bottom: -220px; }
+    .time-copy { position: relative; z-index: 2; }
+    .time-copy small { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold-muted); }
+    .time-copy h2 { margin: 7px 0 4px; font-size: 25px; color: var(--gold-bright); }
+    .time-copy p { margin: 0; color: var(--text-muted); font-size: 12px; }
+    
+    footer {
+      background: #293740; color: var(--text-muted);
+      padding: 32px 30px; border-top: 1px solid rgba(55, 212, 175, 0.1);
+    }
+    .footer-inner { max-width: 1380px; margin: auto; display: flex; justify-content: space-between; gap: 25px; }
+    footer strong { color: var(--gold-accent); font-size: 15px; letter-spacing: .08em; font-family: 'Orbitron', sans-serif; }
+    footer p { font-size: 11px; margin: 8px 0 0; }
+    .footer-links { display: flex; gap: 22px; font-size: 11px; }
+    .footer-links a:hover { color: var(--gold-bright); }
+
+    /* Responsividade */
+    @media(max-width: 1050px) {
+      .menu { gap: 17px; }
+      .brand { min-width: auto; }
+      .categories { grid-template-columns: repeat(3, 1fr); }
+      .products { grid-template-columns: repeat(2, 1fr); }
+      .slide { grid-template-columns: 52% 48%; padding: 42px; }
+      .slide h1 { font-size: 48px; }
+    }
+    @media(max-width: 720px) {
+      .header { height: 68px; }
+      .nav { padding: 0 17px; }
+      .brand-name { font-size: 20px; }
+      .menu { 
+        display: none; position: absolute; top: 68px; left: 0; right: 0; 
+        background: var(--wine-dark); padding: 15px 22px; flex-direction: column; 
+        align-items: flex-start; gap: 5px; border-bottom: 1px solid var(--line);
+      }
+      .menu.open { display: flex; }
+      .mobile-toggle { display: block; }
+      .header-cta { display: none; }
+      .hero-wrap { padding: 15px 15px 0; }
+      .carousel { height: 550px; border-radius: 17px; }
+      .slide { grid-template-columns: 1fr; padding: 34px 25px; align-content: center; }
+      .slide h1 { font-size: 42px; }
+      .slide p { font-size: 13px; }
+      .visual { height: 230px; margin-top: -5px; transform: scale(0.8); }
+      .dots { left: 25px; }
+      .counter { right: 25px; }
+      .categories { padding: 18px 15px 4px; grid-template-columns: repeat(2, 1fr); }
+      .section { padding: 32px 15px; }
+      .products { grid-template-columns: 1fr 1fr; }
+      .product-art { height: 145px; }
+      .time-banner { padding: 0 15px; margin-bottom: 25px; }
+      .time-box { padding: 22px; flex-direction: column; align-items: flex-start; }
+      .footer-inner { flex-direction: column; }
+    }
+    @media(max-width: 460px) {
+      .products { grid-template-columns: 1fr; }
+      .slide h1 { font-size: 37px; }
+      .actions { flex-wrap: wrap; }
+    }
+
+    .profile-icon{
+      width: 20%;
+      height: 20%;
+    }
+  </style>
+</head>
+
+<body>
+
+<header class="header">
+  <nav class="nav">
+    <a class="brand" href="#inicio" aria-label="Chronnus início">
+      <!-- INSTRUÇÃO: Insira aqui a imagem da sua LOGO. 
+           Substitua "image_72eda8.png" pelo nome/caminho do arquivo da sua logo. -->
+      <img src="imgs\logo.png" alt="Chronnus Logo" class="brand-logo" onerror="this.src='https://placehold.co/150x45/2F090F/D4AF37?text=CHRONNUS'">
+      <img src="imgs\titulo.png" alt="Chronnus titulo" class="brand-logo2">
+    </a>
+
+    <div class="menu" id="menu">
+      <a href="#inicio">Início</a>
+      <a href="#categorias">Categorias</a>
+      <a href="#ofertas">Ofertas</a>
+      <a href="#sobre">Sobre</a>
+      <div class="profile-icon"><img src="imgs/profile.png" alt=""></div>
+    </div>
+
+    <button class="header-cta" onclick="document.querySelector('#ofertas').scrollIntoView()">Ver ofertas</button>
+    <button class="mobile-toggle" onclick="document.querySelector('#menu').classList.toggle('open')" aria-label="Abrir menu">☰</button>
+  </nav>
+</header>
+
+<main id="inicio">
+
+  <section class="hero-wrap">
+    <div class="carousel" aria-label="Ofertas em destaque">
+
+      <!-- Slide 1 -->
+      <article class="slide active">
+        <!-- INSTRUÇÃO: Para adicionar um banner/flyer de fundo neste slide, insira o src da imagem abaixo. 
+             Caso não queira, basta apagar a tag <img>. -->
+        <img src="" alt="" class="slide-flyer-bg" style="display:none;" onload="this.style.display='block'">
+        
+        <div class="slide-content">
+          <div class="eyebrow"><span class="dot"></span>Oferta por tempo limitado</div>
+          <h1>Seu tempo.<br><span>Seu próximo setup.</span></h1>
+          <p>Encontre tecnologia para acompanhar seu ritmo. Condições especiais em computadores, periféricos e componentes selecionados.</p>
+          <div class="actions">
+            <button class="btn btn-primary" onclick="document.querySelector('#ofertas').scrollIntoView()">Explorar ofertas</button>
+            <button class="btn btn-ghost" onclick="nextSlide()">Próxima oferta →</button>
+          </div>
+        </div>
+        <div class="visual">
+          <span class="floating-time">20%</span>
+          <div class="" aria-hidden="">
+            <div class="hg-frame"><img src="imgs/pc-gamer.png" alt=""> <div class="eyebrow"><img src="imgs/Waiting.gif" class="pulse-green" alt=""></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Slide 2 -->
+      <article class="slide">
+        <!-- INSTRUÇÃO: Imagem de fundo para o Slide 2. Substitua o src pelo seu arquivo. -->
+        <img src="URL_DO_SEU_FLYER_2_AQUI.jpg" alt="" class="slide-flyer-bg" style="display:none;" onload="this.style.display='block'">
+        
+        <div class="slide-content">
+          <div class="eyebrow"><span class="dot"></span>Desempenho sem espera</div>
+          <h1>Mais velocidade.<br><span>Menos tempo perdido.</span></h1>
+          <p>Atualize o armazenamento e dê mais agilidade ao seu computador com soluções pensadas para produtividade e entretenimento.</p>
+          <div class="actions">
+            <button class="btn btn-primary" onclick="document.querySelector('#ofertas').scrollIntoView()">Ver componentes</button>
+            <button class="btn btn-ghost" onclick="prevSlide()">← Voltar</button>
+          </div>
+        </div>
+        <div class="visual">
+          <span class="floating-time">PRO</span>
+          <!-- Elemento visual abstrato Dourado flutuante -->
+          <div style="width: 200px; height: 200px; border-radius: 20px; background: linear-gradient(135deg, var(--gold-accent), transparent); border: 4px solid var(--gold-bright); transform: rotate(45deg); box-shadow: 0 0 40px rgba(212,175,55,0.4);"></div>
+        </div>
+      </article>
+
+      <!-- Slide 3 -->
+      <article class="slide">
+        <!-- INSTRUÇÃO: Imagem de fundo para o Slide 3. Substitua o src pelo seu arquivo. -->
+        <img src="URL_DO_SEU_FLYER_3_AQUI.jpg" alt="" class="slide-flyer-bg" style="display:none;" onload="this.style.display='block'">
+        
+        <div class="slide-content">
+          <div class="eyebrow"><span class="dot"></span>Chronnus Selection</div>
+          <h1>O momento certo<br><span>para evoluir.</span></h1>
+          <p>Curadoria de produtos para você escolher com clareza, sem excesso de informação e sem complicar a sua decisão.</p>
+          <div class="actions">
+            <button class="btn btn-primary" onclick="document.querySelector('#categorias').scrollIntoView()">Conhecer categorias</button>
+            <button class="btn btn-ghost" onclick="nextSlide()">Próxima oferta →</button>
+          </div>
+        </div>
+        <div class="visual">
+          <span class="floating-time">NOW</span>
+          <div class="hourglass" aria-hidden="true" style="transform: scale(0.9);">
+            <div class="hg-frame"></div><div class="hg-cap top"></div><div class="hg-cap bottom"></div>
+            <div class="glass"></div><div class="sand-top" style="height:65px"></div>
+            <div class="sand-stream"></div><div class="sand-bottom" style="height:120px"></div>
+          </div>
+        </div>
+      </article>
+
+      <button class="carousel-arrow prev" onclick="prevSlide()" aria-label="Slide anterior">‹</button>
+      <button class="carousel-arrow next" onclick="nextSlide()" aria-label="Próximo slide">›</button>
+
+      <div class="dots">
+        <button class="dot-btn active" onclick="goToSlide(0)" aria-label="Slide 1"></button>
+        <button class="dot-btn" onclick="goToSlide(1)" aria-label="Slide 2"></button>
+        <button class="dot-btn" onclick="goToSlide(2)" aria-label="Slide 3"></button>
+      </div>
+      <div class="counter"><span id="current">01</span> / 03</div>
+    </div>
+  </section>
+
+  <section class="section" id="ofertas">
+    <div class="section-head">
+      <div>
+        <h2>Escolhas para o seu próximo momento</h2>
+        <p>Produtos selecionados para tornar seu setup mais eficiente.</p>
+      </div>
+      <a class="link" href="#ofertas">Ver catálogo completo →</a>
+    </div>
+
+    <div class="products">
+      <!-- Produto 1 -->
+      <article class="product">
+        <span class="badge">-20%</span>
+        <div class="product-art">
+          <!-- INSTRUÇÃO: Atualize a imagem do Produto 1 alterando o 'src'. 
+               Como o fundo do tema é escuro/vinho, recomendo muito usar imagens em PNG com fundo transparente. -->
+          <img src="imgs/pc-gamer.png" alt="PC Gamer" class="product-img" onerror="this.src='https://placehold.co/200x200/4A0E17/D4AF37?text=PC+Gamer'">
+        </div>
+        <h3>PC Gamer Chronnus Core</h3>
+        <div class="desc">Um conjunto equilibrado para jogos e criação.</div>
+        <div class="price-row"><span class="price">R$ 7.799,90</span><button class="buy">Comprar</button></div>
+      </article>
+
+      <!-- Produto 2 -->
+      <article class="product">
+        <span class="badge" style="background:var(--gold-bright)">Oferta</span>
+        <div class="product-art">
+          <!-- INSTRUÇÃO: Atualize a imagem do Produto 2 alterando o 'src'. -->
+          <img src="imgs/rtx5060.png" alt="Placa de Vídeo RTX 5060" class="product-img" onerror="this.src='https://placehold.co/200x200/4A0E17/D4AF37?text=Placa+Video'">
+        </div>
+        <h3>Placa de Vídeo RTX 5060</h3>
+        <div class="desc">Gráficos de última geração para os jogos mais exigentes.</div>
+        <div class="price-row"><span class="price">R$ 2.499,90</span><button class="buy">Comprar</button></div>
+      </article>
+
+      <!-- Produto 3 -->
+      <article class="product">
+        <span class="badge">-15%</span>
+        <div class="product-art">
+          <!-- INSTRUÇÃO: Atualize a imagem do Produto 3 alterando o 'src'. -->
+          <img src="imgs/placamãe.png" alt="Placa Mãe MSI H510M-A PRO" class="product-img" onerror="this.src='https://placehold.co/200x200/4A0E17/D4AF37?text=Placa+Mae'">
+        </div>
+        <h3>Placa Mãe MSI H510M-A PRO</h3>
+        <div class="desc">Estabilidade e performance otimizada para o seu setup.</div>
+        <div class="price-row"><span class="price">R$ 549,90</span><button class="buy">Comprar</button></div>
+      </article>
+
+      <!-- Produto 4 -->
+      <article class="product">
+        <span class="badge" style="background:#5cb85c; color:white;">Novo</span>
+        <div class="product-art">
+           <!-- INSTRUÇÃO: Substitua este espaço por uma tag <img src="..."> do seu Produto 4 -->
+           <img src="imgs/pc.png" alt="Notebook" class="product-img" onerror="this.src='https://placehold.co/200x200/4A0E17/D4AF37?text=Produto+Novo'">
+        </div>
+        <h3>Notebook Chronnus Air</h3>
+        <div class="desc">Mobilidade e produtividade em um só equipamento.</div>
+        <div class="price-row"><span class="price">R$ 2.699,90</span><button class="buy">Comprar</button></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="time-banner" id="sobre">
+    <div class="time-box">
+      <div class="time-copy">
+        <small>O conceito Chronnus</small>
+        <h2>Tudo </h2>
+        <p>Tecnologia escolhida para fazer seu tempo render mais — com clareza, desempenho e uma estética inigualável.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <strong>CHRONNUS</strong>
+      <p>Tecnologia no seu tempo.</p>
+    </div>
+    <div class="footer-links">
+      <a href="#inicio">Início</a>
+      <a href="#categorias">Categorias</a>
+      <a href="#ofertas">Ofertas</a>
+      <a href="#sobre">Sobre</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  let currentSlide = 0;
+  const slides = document.querySelectorAll('.slide');
+  const dots = document.querySelectorAll('.dot-btn');
+  const counter = document.getElementById('current');
+  let timer;
+
+  function renderSlide(index){
+    currentSlide = (index + slides.length) % slides.length;
+    slides.forEach((slide,i)=>slide.classList.toggle('active', i === currentSlide));
+    dots.forEach((dot,i)=>dot.classList.toggle('active', i === currentSlide));
+    counter.textContent = String(currentSlide + 1).padStart(2,'0');
+  }
+
+  function nextSlide(){ renderSlide(currentSlide + 1); restartTimer(); }
+  function prevSlide(){ renderSlide(currentSlide - 1); restartTimer(); }
+  function goToSlide(index){ renderSlide(index); restartTimer(); }
+
+  function restartTimer(){
+    clearInterval(timer);
+    timer = setInterval(()=>renderSlide(currentSlide + 1), 6500);
+  }
+
+  const carousel = document.querySelector('.carousel');
+  carousel.addEventListener('mouseenter', ()=>clearInterval(timer));
+  carousel.addEventListener('mouseleave', restartTimer);
+
+  let touchStart = 0;
+  carousel.addEventListener('touchstart', e => touchStart = e.changedTouches[0].clientX, {passive:true});
+  carousel.addEventListener('touchend', e => {
+    const delta = e.changedTouches[0].clientX - touchStart;
+    if(Math.abs(delta) > 45) delta < 0 ? nextSlide() : prevSlide();
+  }, {passive:true});
+
+  restartTimer();
+</script>
+</body>
+</html>
