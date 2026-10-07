@@ -519,9 +519,21 @@
     }
 
     .profile-icon{
-      width: 20%;
-      height: 20%;
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+
     }
+
+    .profile-icon :hover { color: var(--gold-bright); text-decoration: underline; }
+
+    .profile-img{
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .
   </style>
 </head>
 
@@ -541,13 +553,27 @@
       <a href="#categorias">Categorias</a>
       <a href="#ofertas">Ofertas</a>
       <a href="#sobre">Sobre</a>
-      <div class="profile-icon"><img src="imgs/profile.png" alt=""></div>
+      <div class="profile-icon"><img class="profile-img" src="imgs/profile.png" alt=""></div>
     </div>
+
+    
 
     <button class="header-cta" onclick="document.querySelector('#ofertas').scrollIntoView()">Ver ofertas</button>
     <button class="mobile-toggle" onclick="document.querySelector('#menu').classList.toggle('open')" aria-label="Abrir menu">☰</button>
   </nav>
 </header>
+
+<header class="secondary-header">
+
+  
+  <a href="#inicio">Início</a>
+    <a href="#categorias">Categorias</a>
+    <a href="#ofertas">Ofertas</a>
+    <a href="#sobre">Sobre</a>
+
+
+</header>
+
 
 <main id="inicio">
 
