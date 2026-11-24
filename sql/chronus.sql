@@ -28,7 +28,11 @@ CREATE TABLE `categoria` (
   PRIMARY KEY (`id_categoria`),
   UNIQUE KEY `id_categoria` (`id_categoria`),
   UNIQUE KEY `nome_categoria` (`nome_categoria`)
+<<<<<<< HEAD
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+=======
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+>>>>>>> 20196a56b9a246ab0fe317129fbe71874f549006
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -58,7 +62,11 @@ CREATE TABLE `cliente` (
   UNIQUE KEY `email_clien` (`email_clien`),
   UNIQUE KEY `telefone_clien` (`telefone_clien`),
   UNIQUE KEY `cpf_clien` (`cpf_clien`)
+<<<<<<< HEAD
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+=======
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+>>>>>>> 20196a56b9a246ab0fe317129fbe71874f549006
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -85,7 +93,11 @@ CREATE TABLE `endereco` (
   UNIQUE KEY `id_endereco` (`id_endereco`),
   KEY `id_clien` (`id_clien`),
   CONSTRAINT `endereco_ibfk_1` FOREIGN KEY (`id_clien`) REFERENCES `cliente` (`id_clien`) ON DELETE CASCADE ON UPDATE CASCADE
+<<<<<<< HEAD
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+=======
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+>>>>>>> 20196a56b9a246ab0fe317129fbe71874f549006
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -115,7 +127,11 @@ CREATE TABLE `item_pedido` (
   KEY `id_produ` (`id_produ`),
   CONSTRAINT `item_pedido_ibfk_1` FOREIGN KEY (`id_pedido`) REFERENCES `pedido` (`id_pedido`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `item_pedido_ibfk_2` FOREIGN KEY (`id_produ`) REFERENCES `produto` (`id_produ`) ON DELETE CASCADE ON UPDATE CASCADE
+<<<<<<< HEAD
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+=======
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+>>>>>>> 20196a56b9a246ab0fe317129fbe71874f549006
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -144,7 +160,11 @@ CREATE TABLE `pedido` (
   UNIQUE KEY `id_pedido` (`id_pedido`),
   KEY `id_clien` (`id_clien`),
   CONSTRAINT `pedido_ibfk_1` FOREIGN KEY (`id_clien`) REFERENCES `cliente` (`id_clien`) ON DELETE CASCADE ON UPDATE CASCADE
+<<<<<<< HEAD
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+=======
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+>>>>>>> 20196a56b9a246ab0fe317129fbe71874f549006
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -174,7 +194,11 @@ CREATE TABLE `produto` (
   UNIQUE KEY `id_produ` (`id_produ`),
   KEY `id_vende` (`id_vende`),
   CONSTRAINT `produto_ibfk_1` FOREIGN KEY (`id_vende`) REFERENCES `vendedor` (`id_vende`) ON DELETE CASCADE ON UPDATE CASCADE
+<<<<<<< HEAD
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+=======
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+>>>>>>> 20196a56b9a246ab0fe317129fbe71874f549006
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -204,7 +228,11 @@ CREATE TABLE `vendedor` (
   UNIQUE KEY `email_vende` (`email_vende`),
   UNIQUE KEY `telefone_vende` (`telefone_vende`),
   UNIQUE KEY `cpf_vende` (`cpf_vende`)
+<<<<<<< HEAD
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+=======
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+>>>>>>> 20196a56b9a246ab0fe317129fbe71874f549006
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
