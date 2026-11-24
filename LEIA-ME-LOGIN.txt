@@ -1,0 +1,66 @@
+CHRONNUS - INSTALAÇÃO E USO DO SISTEMA ATUALIZADO
+
+O projeto utiliza PHP puro, MySQL/MariaDB e PDO. Para executá-lo no Laragon:
+
+1) COLOCAR O PROJETO NA PASTA DO LARAGON
+- Copie a pasta "e-commerce-pwii_bdii" para C:\laragon\www.
+- O caminho ficará parecido com C:\laragon\www\e-commerce-pwii_bdii.
+- Abra o Laragon e clique em "Start All".
+
+2) CRIAR OU LOCALIZAR O BANCO
+- Abra o HeidiSQL pelo Laragon.
+- Crie um banco com o nome chronus, caso ainda não exista.
+- Se este for um banco NOVO, importe primeiro o arquivo sql/chronus.sql.
+- ATENÇÃO: chronus.sql é um dump inicial e contém comandos DROP TABLE. Não o importe por cima de um banco que já tenha dados importantes.
+- Se o banco chronus já existe e contém os dados do projeto, não reimporte chronus.sql.
+
+3) EXECUTAR OS AJUSTES DO BANCO (NA ORDEM)
+- Abra sql/ajuste_login.sql no HeidiSQL e execute seu conteúdo apenas se a coluna senha_clien ainda não existir na tabela cliente.
+- Depois, abra sql/atualizacao_loja.sql e execute o conteúdo uma única vez.
+- A atualização cria a tabela central usuario, relaciona os perfis de cliente/vendedor, adiciona imagem e desconto aos produtos e cadastra as categorias MAQUINAS e PERIFERICOS com quatro produtos de demonstração em cada uma.
+- Se você já executou sql/atualizacao_loja.sql, não execute novamente: os comandos de alteração de estrutura são feitos para uma única execução.
+
+4) CONFERIR A CONEXÃO
+- Abra config/conexao.php.
+- O padrão está configurado para host localhost, banco chronus, usuário root e senha vazia.
+- Se o seu MySQL do Laragon usar outra senha ou porta, ajuste os dados neste arquivo.
+
+5) ABRIR A LOJA
+- No navegador, acesse http://localhost/e-commerce-pwii_bdii/.
+- A página inicial agora lê produtos e categorias diretamente do banco.
+- A página antiga index.html encaminha para index.php.
+
+CADASTRO E CONTA DE VENDEDOR
+- Em Criar conta, o botão inferior "Quero vender na Chronnus" alterna o formulário para cadastro de vendedor.
+- O vendedor já pode entrar no painel assim que concluir o cadastro; não há aprovação administrativa.
+- Quem já possui conta de cliente também verá o botão "Quero vender" no menu da loja. Ele converte a conta e mantém o registro de cliente existente.
+- O login é único: clientes entram na loja e vendedores são direcionados ao painel do vendedor.
+
+PAINEL DO VENDEDOR
+- No painel, é possível cadastrar, editar e excluir os próprios produtos.
+- Os campos incluem nome, descrição, categoria, preço, desconto e imagem.
+- As imagens enviadas ficam em uploads/produtos. São aceitos JPG, PNG e WEBP de até 4 MB.
+- Um vendedor só consegue alterar ou excluir produtos associados ao seu próprio perfil.
+
+SEGURANÇA
+- As senhas são armazenadas com password_hash e verificadas com password_verify.
+- As operações de cadastro, alteração de conta e gerenciamento de produtos usam token CSRF e consultas preparadas.
+- Não abra os arquivos PHP com duplo clique: acesse pelo endereço localhost com o servidor do Laragon ligado.
+
+
+=== FAVICON (ÍCONE DA ABA DO NAVEGADOR) ===
+O ícone usado em todas as páginas está em: imgs/favicon.png
+Para trocar pelo ícone definitivo, coloque sua imagem PNG nessa pasta com o nome favicon.png,
+substituindo o arquivo atual. Recomenda-se uma imagem quadrada (32x32, 64x64 ou 128x128),
+com o símbolo centralizado e fundo transparente. Não altere o nome do arquivo.
+As páginas da raiz usam href="imgs/favicon.png" e a área vendedor usa ../imgs/favicon.png.
+Se o navegador continuar mostrando o ícone antigo, faça uma atualização forçada (Ctrl+F5)
+ou limpe o cache do navegador.
+
+=== COMPRA E REGISTRO DE PEDIDOS ===
+O botão Comprar abre compra.php?id=ID_DO_PRODUTO. A página consulta nome, descrição,
+imagem, preço, categoria e desconto diretamente do banco. O cliente escolhe a quantidade
+e confirma o pedido. O sistema recalcula o preço no servidor e grava em pedido e item_pedido
+dentro de uma transação. O status inicial fica como pendente.
+Importante: esta implementação registra o pedido, mas ainda NÃO integra gateway de pagamento,
+frete, estoque ou confirmação financeira. Para comprar, é necessário estar conectado como cliente.

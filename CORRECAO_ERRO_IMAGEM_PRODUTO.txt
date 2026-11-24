@@ -1,0 +1,33 @@
+CHRONNUS - CORRECAO DO ERRO imagem_produ
+
+CAUSA
+O chronus.sql original cria a tabela produto sem as colunas imagem_produ e
+desconto_produ, mas as telas PHP do catalogo, do checkout e do painel vendedor
+consultam essas colunas. Portanto, importar apenas chronus.sql deixa o banco
+incompativel com o codigo.
+
+CORRECAO
+Foi adicionado sql/corrigir_estrutura_produto.sql. Ele:
+- cria/garante as categorias MAQUINAS e PERIFERICOS;
+- adiciona imagem_produ VARCHAR(255), caso esteja ausente;
+- adiciona desconto_produ DECIMAL(5,2), caso esteja ausente;
+- ajusta id_categoria ao tipo da chave da tabela categoria;
+- cria indice e chave estrangeira apenas se ainda nao existirem;
+- verifica produtos com categoria inexistente antes de criar a FK.
+
+COMO EXECUTAR
+1. Abra o Laragon e inicie o MySQL.
+2. Abra o banco chronus no HeidiSQL.
+3. Selecione o banco chronus.
+4. Abra sql/corrigir_estrutura_produto.sql e execute todo o arquivo.
+5. Execute: SHOW COLUMNS FROM produto;
+6. Confirme que aparecem imagem_produ e desconto_produ.
+
+IMPORTANTE
+- Este arquivo e uma correcao de estrutura, nao apaga produtos.
+- Pode ser executado novamente sem duplicar as duas colunas ou a FK.
+- Se houver produtos com id_categoria sem categoria correspondente, o script
+  informa o problema em vez de criar uma relacao incorreta.
+- Nao reimporte chronus.sql sobre um banco que ja contenha dados.
+- A atualizacao completa de login/usuario (atualizacao_loja.sql) e separada;
+  nao execute essa atualizacao novamente se ela ja foi aplicada.
