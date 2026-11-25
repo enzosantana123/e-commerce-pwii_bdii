@@ -1,11 +1,12 @@
 <?php
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/config/conexao.php';
+atualizarTipoUsuario($pdo);
 exigirLogin();
 
 $erro = '';
 if (tipoUsuario() === 'vendedor') {
-    header('Location: vendedor/index.php');
+    header('Location: usuario.php');
     exit;
 }
 if (tipoUsuario() !== 'cliente') {
@@ -15,6 +16,7 @@ if (tipoUsuario() !== 'cliente') {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     validarCsrf();
+    if (($_POST['confirmar'] ?? '') !== 'sim') { http_response_code(400); exit('Confirmação necessária.'); }
     try {
         $pdo->beginTransaction();
         $stmt = $pdo->prepare(
@@ -58,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         session_regenerate_id(true);
         $_SESSION['usuario_tipo'] = 'vendedor';
-        header('Location: vendedor/index.php');
+        header('Location: usuario.php');
         exit;
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) {
@@ -83,14 +85,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <a class="voltar" href="index.php">← Voltar para a loja</a>
     <section class="auth-card">
         <img class="logo" src="imgs/logo.png" alt="Chronnus">
-        <h1>Quero vender</h1>
-        <p class="subtitulo">Sua conta de cliente será convertida em conta de vendedor. Seus dados de cliente serão mantidos e você poderá cadastrar produtos imediatamente.</p>
+        <h1>Deseja mesmo se tornar um vendedor nesta conta?</h1>
+        <p class="subtitulo">Sua conta de cliente será convertida em conta de vendedor. Seus dados e histórico de cliente serão mantidos. Você poderá cadastrar e vender produtos, além de continuar comprando normalmente.</p>
         <?php if ($erro): ?><div class="mensagem"><?= h($erro) ?></div><?php endif; ?>
         <form method="POST">
             <input type="hidden" name="csrf_token" value="<?= h(csrfToken()) ?>">
-            <button class="botao" type="submit">Sim, quero vender na Chronnus</button>
+            <button class="botao" type="submit" name="confirmar" value="sim">Sim, quero vender na Chronnus</button>
         </form>
-        <p class="alternativa"><a href="index.php">Agora não</a></p>
+        <p class="alternativa"><a href="usuario.php">Agora não</a></p>
     </section>
 </main>
 </body>

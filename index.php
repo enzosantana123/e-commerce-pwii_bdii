@@ -1,23 +1,114 @@
 <?php
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/config/conexao.php';
+atualizarTipoUsuario($pdo);
+
+// Garante que a categoria VARIADOS exista mesmo em bancos que ainda não receberam a atualização.
+$pdo->prepare("INSERT INTO categoria (nome_categoria) VALUES ('VARIADOS') ON DUPLICATE KEY UPDATE nome_categoria = VALUES(nome_categoria)")->execute();
+
+$mostrarOfertas = isset($_GET['ofertas']) && (string)$_GET['ofertas'] === '1';
 
 $categorias = $pdo->query(
     "SELECT c.id_categoria, c.nome_categoria, COUNT(p.id_produ) AS total_produtos
      FROM categoria c
      LEFT JOIN produto p ON p.id_categoria = c.id_categoria
-     WHERE c.nome_categoria IN ('MAQUINAS', 'PERIFERICOS')
+     WHERE UPPER(TRIM(c.nome_categoria)) IN ('MAQUINAS', 'PERIFERICOS', 'VARIADOS')
      GROUP BY c.id_categoria, c.nome_categoria
-     ORDER BY FIELD(c.nome_categoria, 'MAQUINAS', 'PERIFERICOS')"
+     ORDER BY FIELD(UPPER(TRIM(c.nome_categoria)), 'MAQUINAS', 'PERIFERICOS', 'VARIADOS')"
 )->fetchAll();
 
+$termoBusca = trim((string)($_GET['busca'] ?? ''));
+$carrinhoSessao = (isset($_SESSION['carrinho']) && is_array($_SESSION['carrinho'])) ? $_SESSION['carrinho'] : [];
+$quantidadeCarrinho = array_sum(array_map(static fn($quantidade) => max(0, (int)$quantidade), $carrinhoSessao));
+
+$guiasCategorias = [
+    'MAQUINAS' => ['descricao' => 'Computadores e componentes para montar, atualizar ou acelerar seu setup.', 'guia' => 'Compare desempenho, compatibilidade e uso antes de escolher.'],
+    'PERIFERICOS' => ['descricao' => 'Acessórios que ampliam conforto, precisão e experiência no dia a dia.', 'guia' => 'Priorize ergonomia, conectividade e compatibilidade com seus dispositivos.'],
+    'VARIADOS' => ['descricao' => 'Gadgets, energia portátil, iluminação e acessórios inteligentes para o cotidiano.', 'guia' => 'Compare autonomia, potência, conexões e recursos de segurança antes de escolher.']
+];
+
+function imagemProdutoLoja(?string $imagem, string $nome, string $categoria): string
+{
+    $caminho = str_replace('\\', '/', trim((string)$imagem));
+    if ($caminho !== '' && !preg_match('~^(https?://|data:)~i', $caminho)) {
+        $caminho = ltrim($caminho, '/');
+        if (is_file(__DIR__ . '/' . $caminho)) return $caminho;
+    } elseif ($caminho !== '') {
+        return $caminho;
+    }
+
+    $texto = function_exists('mb_strtolower') ? mb_strtolower($nome, 'UTF-8') : strtolower($nome);
+    $texto = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $texto);
+    $slug = trim(preg_replace('/[^a-z0-9]+/', '-', strtolower($texto)), '-');
+    $imagemPorProduto = [
+        'mouse-pad-gamer' => 'imgs/mouse-pad-gamer.png',
+        'power-bank-gamer-20k' => 'imgs/power-bank-gamer-20k.png',
+        'carregador-sem-fio-15w' => 'imgs/carregador-sem-fio-15w.png',
+        'luminaria-led-gamer' => 'imgs/luminaria-gamer.png',
+        'organizador-cabos-gamer' => 'imgs/organizador-de-fios-gamer.png',
+        'suporte-para-headset-gamer' => 'imgs/periferico-headset.png',
+        'suporte-para-notebook-gamer' => 'imgs/pc.png',
+        'capa-para-notebook-gamer' => 'imgs/pc.png',
+        'teclado-mecanico-vortex' => 'imgs/periferico-teclado.png',
+        'mouse-gamer-pulse' => 'imgs/periferico-mouse.png',
+        'headset-chronnus-sonic' => 'imgs/periferico-headset.png',
+        'monitor-chronnus-27' => 'imgs/periferico-monitor.png',
+        'pc-gamer-chronnus-core' => 'imgs/pc-gamer.png',
+        'pc-chronnus-office' => 'imgs/pc.png',
+        'geforce-rtx-5060' => 'imgs/rtx5060.png',
+        'placa-mae-chronnus-h510' => 'imgs/placa-mae.png'
+    ];
+    if (isset($imagemPorProduto[$slug]) && is_file(__DIR__ . '/' . $imagemPorProduto[$slug])) {
+        return $imagemPorProduto[$slug];
+    }
+    return strtoupper(trim($categoria)) === 'VARIADOS' ? 'imgs/mouse-pad-gamer.png' : 'imgs/pc.png';
+}
+
+function renderizarCardProduto(array $produto): void
+{
+    $desconto = max(0, min(100, (float)($produto['desconto_produ'] ?? 0)));
+    $precoOriginal = (float)$produto['preco_produ'];
+    $precoFinal = $precoOriginal * (1 - $desconto / 100);
+    $imagemProduto = imagemProdutoLoja($produto['imagem_produ'] ?? null, (string)$produto['nome_produ'], (string)$produto['nome_categoria']);
+    ?>
+    <article class="product">
+      <?php if ($desconto > 0): ?><span class="badge">-<?= number_format($desconto, 0, ',', '.') ?>%</span><?php endif; ?>
+      <div class="product-art"><img src="<?= h($imagemProduto) ?>" alt="<?= h($produto['nome_produ']) ?>" class="product-img" onerror="this.onerror=null;this.src='imgs/mouse-pad-gamer.png'"></div>
+      <h3><?= h($produto['nome_produ']) ?></h3>
+      <div class="desc"><?= h($produto['desc_produ'] ?? '') ?></div>
+      <div class="price-row">
+        <span class="price-wrap">
+          <?php if ($desconto > 0): ?><span class="old-price">R$ <?= number_format($precoOriginal, 2, ',', '.') ?></span><?php endif; ?>
+          <span class="price">R$ <?= number_format($precoFinal, 2, ',', '.') ?></span>
+        </span>
+        <div class="product-actions">
+          <form method="post" action="carrinho.php">
+            <input type="hidden" name="csrf_token" value="<?= h(csrfToken()) ?>">
+            <input type="hidden" name="acao" value="adicionar">
+            <input type="hidden" name="id_produto" value="<?= (int)$produto['id_produ'] ?>">
+            <button class="cart-add" type="submit" aria-label="Adicionar <?= h($produto['nome_produ']) ?> ao carrinho" title="Adicionar ao carrinho"><img src="imgs/shopping-cart.svg" alt=""></button>
+          </form>
+          <a class="buy" href="compra.php?id=<?= (int)$produto['id_produ'] ?>">Comprar agora</a>
+        </div>
+      </div>
+    </article>
+    <?php
+}
+
 $consultaProdutos = $pdo->prepare(
-    'SELECT p.id_produ, p.nome_produ, p.desc_produ, p.imagem_produ, p.preco_produ, p.desconto_produ,
+    "SELECT p.id_produ, p.nome_produ, p.desc_produ, p.imagem_produ, p.preco_produ, p.desconto_produ,
             c.nome_categoria
      FROM produto p
      INNER JOIN categoria c ON c.id_categoria = p.id_categoria
-     WHERE p.id_categoria = ?
-     ORDER BY p.id_produ DESC'
+     WHERE p.id_categoria = ? AND NOT (p.id_categoria = 3 AND LOWER(p.nome_produ) LIKE '%chronnus%') AND (? = '' OR p.nome_produ LIKE ? OR p.desc_produ LIKE ? OR c.nome_categoria LIKE ?)
+     ORDER BY p.id_produ DESC"
+);
+$consultaOfertas = $pdo->prepare(
+    "SELECT p.id_produ, p.nome_produ, p.desc_produ, p.imagem_produ, p.preco_produ, p.desconto_produ, c.nome_categoria
+     FROM produto p
+     INNER JOIN categoria c ON c.id_categoria = p.id_categoria
+     WHERE p.desconto_produ > 0 AND NOT (p.id_categoria = 3 AND LOWER(p.nome_produ) LIKE '%chronnus%') AND (? = '' OR p.nome_produ LIKE ? OR p.desc_produ LIKE ? OR c.nome_categoria LIKE ?)
+     ORDER BY p.desconto_produ DESC, p.id_produ DESC"
 );
 ?>
 <!DOCTYPE html>
@@ -76,6 +167,10 @@ $consultaProdutos = $pdo->prepare(
       70% { transform: scale(1.08); box-shadow: 0 0 0 12px rgba(212, 175, 55, 0); }
       100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(212, 175, 55, 0); }
     }
+    @keyframes pulse-gold {
+      0%,100% { box-shadow: 0 0 0 0 rgba(51,235,170,.18); }
+      50% { box-shadow: 0 0 0 7px rgba(51,235,170,0); }
+    }
 
     @keyframes float-element {
       0% { transform: translateY(0px); }
@@ -106,12 +201,12 @@ $consultaProdutos = $pdo->prepare(
       padding: 0 30px;
       display: flex;
       align-items: center;
-      gap: 38px;
+      gap: 20px;
     }
     .brand {
       display: flex;
       align-items: center;
-      min-width: 240px;
+      min-width: 175px;
       color: var(--gold-bright);
       height: 100%;
     }
@@ -121,15 +216,31 @@ $consultaProdutos = $pdo->prepare(
       object-fit: contain;
     }
     .brand-logo2{
-      max-width: 430px;
+      max-width: 205px;
       min-width: 20px;
       object-fit: contain;
     }
+    .search-box {
+      display:flex; align-items:center; gap:8px; flex:1 1 320px; width:auto; max-width:520px; min-width:180px; margin-left:0;
+    }
+    .search-box input {
+      width:100%; height:40px; padding:0 14px; border:1px solid rgba(55,212,173,.35);
+      border-radius:10px; background:rgba(1,24,21,.55); color:var(--text-main); outline:none;
+      font:500 12px Inter,sans-serif;
+    }
+    .search-box input::placeholder { color:rgba(248,240,227,.62); }
+    .search-box input:focus { border-color:var(--gold-accent); box-shadow:0 0 0 3px rgba(51,235,170,.1); }
+    .search-box button {
+      flex:0 0 40px; height:40px; border:1px solid var(--gold-accent); border-radius:10px;
+      background:rgba(51,235,170,.08); color:var(--gold-bright); cursor:pointer; font-size:16px;
+    }
+    .search-box button:hover { background:var(--gold-accent); color:var(--wine-dark); }
+
     .menu {
       display: flex;
       align-items: center;
-      gap: 30px;
-      margin-left: auto;
+      gap: 17px;
+      margin-left: 0;
       color: var(--text-main);
       font-size: 14px;
       font-weight: 500;
@@ -330,7 +441,7 @@ $consultaProdutos = $pdo->prepare(
       align-items: center;
       width: 420px; height: 420px;
       border-radius: 50%;
-      background: radial-gradient(circle, 139, 230, 197, 0.6, transparent 64%);
+      background: radial-gradient(circle, rgba(139,230,197,.22), transparent 64%);
       filter: blur(3px);
     }
 
@@ -346,13 +457,13 @@ $consultaProdutos = $pdo->prepare(
     }
     .hg-cap {
       position: absolute; left: 18px; right: 18px; height: 16px; border-radius: 8px;
-      background: var(--gold-bright); box-shadow: 0 0 10px 72, 234, 186, 0.3;
+      background: var(--gold-bright); box-shadow: 0 0 10px rgba(72,234,186,.3);
     }
     .hg-cap.top { top: 6px; } .hg-cap.bottom { bottom: 6px; }
     .glass {
       position: absolute; left: 59px; top: 27px; width: 152px; height: 256px; overflow: hidden;
       clip-path: polygon(0 0, 100% 0, 70% 48%, 100% 100%, 0 100%, 30% 48%);
-      background: rgba(255, 255, 255, 0.05); border: 2px solid 72, 234, 186, 0.3;
+      background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(72,234,186,.3);
     }
     .sand-top {
       position: absolute; left: 68px; top: 54px; width: 134px; height: 104px;
@@ -402,12 +513,12 @@ $consultaProdutos = $pdo->prepare(
 
     .categories {
       max-width: 1380px; margin: 0 auto; padding: 25px 30px 10px;
-      display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px;
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px;
     }
     .cat {
-      background: var(--wine-main); border: 1px solid var(--line);
-      border-radius: 13px; padding: 15px 13px;
-      display: flex; align-items: center; gap: 12px;
+      background: linear-gradient(135deg, var(--wine-main), #102c29); border: 1px solid var(--line);
+      border-radius: 15px; padding: 17px;
+      display: flex; align-items: flex-start; gap: 13px; min-width:0;
       transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     .cat:hover { 
@@ -422,7 +533,10 @@ $consultaProdutos = $pdo->prepare(
       font-weight: bold;
     }
     .cat strong { display: block; font-size: 12px; font-family: 'Inter', sans-serif; color: var(--white); }
-    .cat small { color: var(--gold-muted); font-size: 10px; }
+    .cat small { display:block; color: var(--gold-muted); font-size: 10px; margin-top:4px; }
+    .cat-copy { min-width:0; display:block; }
+    .cat-description { display:block; color:var(--text-muted); font-size:11px; line-height:1.45; margin-top:8px; }
+    .cat-arrow { margin-left:auto; color:var(--gold-bright); font-size:18px; flex:none; }
 
     .section { max-width: 1380px; margin: 0 auto; padding: 42px 30px; }
     .section-head {
@@ -473,27 +587,45 @@ $consultaProdutos = $pdo->prepare(
 
     .product h3 { margin: 0 0 7px; font-size: 14px; color: var(--white); }
     .product .desc { color: var(--text-muted); font-size: 11px; line-height: 1.5; flex-grow: 1; }
-    .price-row { display: flex; align-items: end; justify-content: space-between; margin-top: 13px; }
+    .price-row { display: flex; align-items: end; justify-content: space-between; gap:10px; margin-top: 13px; }
     .price { font-size: 18px; font-weight: 800; font-family: 'Orbitron', sans-serif; color: var(--gold-bright); }
     .buy {
       border: 0; background: rgba(55, 212, 183, 0.1); color: var(--gold-accent); border-radius: 8px;
       padding: 8px 12px; font-size: 11px; font-weight: 700; cursor: pointer;
       border: 1px solid var(--gold-accent); transition: 0.3s;
     }
-    .product:hover .buy {
-      background: var(--gold-accent); color: var(--wine-dark);
-    }
+    .product:hover .buy { background: var(--gold-accent); color: var(--wine-dark); }
+    .product-actions form { margin:0; }
+    .product-actions button { width:100%; }
 
 
-    .category-section { margin-top: 34px; }
-    .category-heading { display:flex; align-items:center; justify-content:space-between; gap:15px; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--line); }
-    .category-heading h3 { margin:0; color:var(--gold-bright); font:700 17px 'Orbitron',sans-serif; letter-spacing:.04em; }
+    .search-result-info { margin-top:28px; padding:14px 16px; border:1px solid var(--line); border-radius:12px; background:rgba(51,235,170,.05); color:var(--text-muted); font-size:13px; }
+    .search-result-info strong { color:var(--gold-bright); }
+
+    .category-section { margin-top: 38px; scroll-margin-top:95px; }
+    .category-heading { display:flex; align-items:center; justify-content:space-between; gap:15px; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid var(--line); }
+    .category-heading h3 { margin:0; color:var(--gold-bright); font:700 18px 'Orbitron',sans-serif; letter-spacing:.04em; }
     .category-heading span { color:var(--text-muted); font-size:11px; }
+    .category-guide { display:flex; flex-wrap:wrap; align-items:center; gap:8px 15px; padding:13px 15px; margin:0 0 17px; border:1px solid var(--line); border-radius:12px; background:rgba(51,235,170,.045); }
+    .category-guide strong { color:var(--gold-bright); font-size:10px; letter-spacing:.08em; text-transform:uppercase; white-space:nowrap; }
+    .category-guide p { color:var(--text-muted); font-size:11px; margin:0; line-height:1.5; }
     .empty-products { color:var(--text-muted); font-size:13px; padding:15px 0; }
     .price-wrap { display:flex; flex-direction:column; gap:3px; }
     .old-price { color:var(--text-muted); font-size:10px; text-decoration:line-through; }
-    .buy { display:inline-flex; align-items:center; justify-content:center; text-decoration:none; }
-    @media(max-width:720px) { .category-heading h3 { font-size:15px; } }
+    .product-actions { display:flex; flex-direction:column; gap:7px; min-width:110px; }
+    .buy, .cart-add { display:inline-flex; align-items:center; justify-content:center; text-decoration:none; text-align:center; border-radius:8px; padding:8px 10px; font-size:10px; font-weight:800; cursor:pointer; }
+    .buy { border:1px solid var(--gold-accent); color:var(--gold-accent); background:rgba(55,212,183,.08); }
+    .cart-add { width:40px; height:36px; padding:6px; border:1px solid var(--gold-accent); color:var(--wine-dark); background:rgba(51,235,170,.10); }
+    .product-actions button.cart-add { width:40px; min-width:40px; align-self:flex-end; padding:6px; }
+    .cart-add img { width:20px; height:20px; display:block; object-fit:contain; }
+    .cart-add:hover,.buy:hover { background:var(--gold-bright); color:var(--wine-dark); }
+    .product-actions form { display:flex; justify-content:flex-end; }
+    .cart-link { display:flex; align-items:center; justify-content:center; gap:6px; white-space:nowrap; }
+    .cart-header-icon { width:24px; height:24px; display:block; object-fit:contain; }
+    .cart-count { display:inline-grid; place-items:center; min-width:20px; height:20px; padding:0 5px; border-radius:20px; background:var(--gold-accent); color:var(--wine-dark); font-size:10px; font-weight:900; }
+    .product-image-missing { display:none; }
+    @media(max-width:720px) { .category-heading h3 { font-size:15px; } .categories {grid-template-columns:repeat(2,minmax(0,1fr));} .category-guide {align-items:flex-start;flex-direction:column;gap:5px;} }
+    @media(max-width:460px) { .categories {grid-template-columns:1fr;} .product-actions {min-width:95px;} }
 
     .time-banner { max-width: 1380px; margin: 0 auto 42px; padding: 0 30px; }
     .time-box {
@@ -527,7 +659,12 @@ $consultaProdutos = $pdo->prepare(
 
     /* Responsividade */
     @media(max-width: 1050px) {
-      .menu { gap: 17px; }
+      .nav { position:relative; gap:12px; }
+      .menu { display:none; position:absolute; top:78px; right:20px; width:min(340px, calc(100vw - 40px)); background:var(--wine-dark); padding:15px 22px; flex-direction:column; align-items:flex-start; gap:6px; border:1px solid var(--line); border-radius:0 0 14px 14px; box-shadow:var(--shadow); }
+      .menu.open { display:flex; }
+      .menu .entrar-link { width:100%; text-align:center; margin-top:7px; }
+      .mobile-toggle { display:block; }
+      .search-box { max-width:none; }
       .brand { min-width: auto; }
       .categories { grid-template-columns: repeat(3, 1fr); }
       .products { grid-template-columns: repeat(2, 1fr); }
@@ -536,8 +673,12 @@ $consultaProdutos = $pdo->prepare(
     }
     @media(max-width: 720px) {
       .header { height: 68px; }
-      .nav { padding: 0 17px; }
+      .nav { padding: 0 17px; gap:10px; }
       .brand-name { font-size: 20px; }
+      .brand { min-width:0; flex:0 0 auto; }
+      .search-box { flex:1 1 auto; width:auto; max-width:none; min-width:120px; margin-left:0; margin-right:4px; }
+      .search-box input { height:36px; }
+      .search-box button { height:36px; flex-basis:36px; }
       .menu { 
         display: none; position: absolute; top: 68px; left: 0; right: 0; 
         background: var(--wine-dark); padding: 15px 22px; flex-direction: column; 
@@ -564,19 +705,17 @@ $consultaProdutos = $pdo->prepare(
       .footer-inner { flex-direction: column; }
     }
     @media(max-width: 460px) {
+      .search-box { width:auto; min-width:105px; }
+      .brand-logo2 { display:none; }
       .products { grid-template-columns: 1fr; }
       .slide h1 { font-size: 37px; }
       .actions { flex-wrap: wrap; }
     }
 
-    .profile-icon{
-      width: 40px;
-      height: 40px;
-      object-fit: contain;
-
-    }
-
-    .profile-icon :hover { color: var(--gold-bright); text-decoration: underline; }
+    .profile-link { display:flex !important; align-items:center; gap:7px; }
+    .profile-icon{ width:32px; height:32px; object-fit:contain; }
+    .profile-link:hover { color:var(--gold-bright); }
+    .profile-link::after { display:none !important; }
 
     .profile-img{
       width: 100%;
@@ -584,6 +723,17 @@ $consultaProdutos = $pdo->prepare(
       object-fit: contain;
     }
 
+  
+    .slide-setup { grid-template-rows: minmax(0,1fr); padding: 30px 62px 52px; }
+    .slide-setup .slide-content { min-width:0; }
+    .slide-setup h1 { font-size:clamp(36px,4.1vw,56px); }
+    .slide-setup .visual { min-height:0; min-width:0; animation:none; }
+    .setup-art { position:relative; width:100%; height:100%; min-height:0; display:grid; place-items:center; z-index:2; }
+    .setup-pc { display:block; width:100%; height:100%; max-height:345px; min-height:0; object-fit:contain; }
+    .setup-clock { position:absolute; right:0; bottom:8px; width:clamp(48px,8vw,105px); height:auto; }
+    .slide-setup .actions { flex-wrap:wrap; }
+    @media(max-width:1050px) and (min-width:721px){.slide-setup{padding:28px 55px 50px}.slide-setup h1{font-size:clamp(32px,4.3vw,45px)}}
+    @media(max-width:720px){.slide-setup{grid-template-rows:auto minmax(0,1fr); padding:24px 48px 48px; gap:10px;align-content:stretch}.slide-setup h1{font-size:clamp(26px,6vw,42px)}.slide-setup p{margin-bottom:14px}.slide-setup .eyebrow{margin-bottom:10px}.slide-setup .visual{height:100%;margin:0;transform:none}.setup-pc{max-height:210px}.setup-clock{width:55px}.slide-setup .btn{padding:9px 12px}}
   </style>
 </head>
 
@@ -594,23 +744,27 @@ $consultaProdutos = $pdo->prepare(
     <a class="brand" href="#inicio" aria-label="Chronnus início">
       <!-- INSTRUÇÃO: Insira aqui a imagem da sua LOGO. 
            Substitua "image_72eda8.png" pelo nome/caminho do arquivo da sua logo. -->
-      <img src="imgs\logo.png" alt="Chronnus Logo" class="brand-logo" onerror="this.src='https://placehold.co/150x45/2F090F/D4AF37?text=CHRONNUS'">
-      <img src="imgs\titulo.png" alt="Chronnus titulo" class="brand-logo2">
+      <img src="imgs/logo.png" alt="Chronnus Logo" class="brand-logo" onerror="this.src='https://placehold.co/150x45/2F090F/D4AF37?text=CHRONNUS'">
+      <img src="imgs/titulo.png" alt="Chronnus titulo" class="brand-logo2">
     </a>
 
+    <form class="search-box" action="index.php" method="get" role="search">
+      <input type="search" name="busca" value="<?= h($termoBusca) ?>" placeholder="Buscar produtos..." aria-label="Buscar produtos">
+      <button type="submit" aria-label="Pesquisar">⌕</button>
+    </form>
+
     <div class="menu" id="menu">
-      <a href="#inicio">Início</a>
-      <a href="#categorias">Categorias</a>
-      <a href="#ofertas">Ofertas</a>
+      <a href="index.php#categorias">Categorias</a>
+      <a href="index.php?ofertas=1#ofertas">Ofertas</a>
       <a href="#sobre">Sobre</a>
+      <a class="cart-link" href="carrinho.php" aria-label="Abrir carrinho" title="Carrinho"><img src="imgs/shopping-cart.svg" alt="" class="cart-header-icon"><span class="cart-count"><?= (int)$quantidadeCarrinho ?></span></a>
       <?php if (usuarioLogado()): ?>
-        <a href="#inicio">Olá, <?= h(explode(' ', nomeUsuario())[0]) ?></a>
+        <a class="profile-link" href="usuario.php" aria-label="Meu perfil"><img src="imgs/profile.png" alt="Perfil" class="profile-icon"><span>Olá, <?= h(explode(' ', nomeUsuario())[0]) ?></span></a>
         <?php if (tipoUsuario() === 'vendedor'): ?>
           <a class="entrar-link" href="vendedor/index.php">Painel do vendedor</a>
         <?php else: ?>
           <a class="entrar-link" href="mudar_para_vendedor.php">Quero vender</a>
         <?php endif; ?>
-        <a href="logout.php">Sair</a>
       <?php else: ?>
         <a class="entrar-link" href="login.php">Entrar</a>
         <a href="cadastro.php">Criar conta</a>
@@ -619,7 +773,6 @@ $consultaProdutos = $pdo->prepare(
 
     
 
-    <button class="header-cta" onclick="document.querySelector('#ofertas').scrollIntoView()">Ver ofertas</button>
     <button class="mobile-toggle" onclick="document.querySelector('#menu').classList.toggle('open')" aria-label="Abrir menu">☰</button>
   </nav>
 </header>
@@ -628,11 +781,12 @@ $consultaProdutos = $pdo->prepare(
 
 <main id="inicio">
 
+  <?php if (!$mostrarOfertas): ?>
   <section class="hero-wrap">
     <div class="carousel" aria-label="Ofertas em destaque">
 
       <!-- Slide 1 -->
-      <article class="slide active">
+      <article class="slide active slide-setup">
         <!-- INSTRUÇÃO: Para adicionar um banner/flyer de fundo neste slide, insira o src da imagem abaixo. 
              Caso não queira, basta apagar a tag <img>. -->
         <img src="" alt="" class="slide-flyer-bg" style="display:none;" onload="this.style.display='block'">
@@ -642,14 +796,15 @@ $consultaProdutos = $pdo->prepare(
           <h1>Seu tempo.<br><span>Seu próximo setup.</span></h1>
           <p>Encontre tecnologia para acompanhar seu ritmo. Condições especiais em computadores, periféricos e componentes selecionados.</p>
           <div class="actions">
-            <button class="btn btn-primary" onclick="document.querySelector('#ofertas').scrollIntoView()">Explorar ofertas</button>
+            <button class="btn btn-primary" onclick="window.location.href='index.php?ofertas=1#ofertas'">Explorar ofertas</button>
             <button class="btn btn-ghost" onclick="nextSlide()">Próxima oferta →</button>
           </div>
         </div>
         <div class="visual">
           <span class="floating-time">20%</span>
-          <div class="" aria-hidden="">
-            <div class="hg-frame"><img src="imgs/pc-gamer.png" alt=""> <div class="eyebrow"><img src="imgs/Waiting.gif" class="pulse-green" alt=""></div>
+          <div class="setup-art">
+            <img class="setup-pc" src="imgs/pc-gamer.png" alt="Computador gamer">
+            <img class="setup-clock" src="imgs/Waiting.gif" alt="">
           </div>
         </div>
       </article>
@@ -664,7 +819,7 @@ $consultaProdutos = $pdo->prepare(
           <h1>Mais velocidade.<br><span>Menos tempo perdido.</span></h1>
           <p>Atualize o armazenamento e dê mais agilidade ao seu computador com soluções pensadas para produtividade e entretenimento.</p>
           <div class="actions">
-            <button class="btn btn-primary" onclick="document.querySelector('#ofertas').scrollIntoView()">Ver componentes</button>
+            <button class="btn btn-primary" onclick="document.querySelector('#categorias').scrollIntoView()">Ver componentes</button>
             <button class="btn btn-ghost" onclick="prevSlide()">← Voltar</button>
           </div>
         </div>
@@ -712,70 +867,80 @@ $consultaProdutos = $pdo->prepare(
   </section>
 
   <section class="categories" id="categorias" aria-label="Categorias de produtos">
+    <?php if ($termoBusca !== ''): ?>
+      <div class="search-result-info">Resultados para <strong><?= h($termoBusca) ?></strong></div>
+    <?php endif; ?>
+
     <?php foreach ($categorias as $categoria): ?>
+      <?php $nomeCategoria = strtoupper(trim((string)$categoria['nome_categoria'])); $guiaCard = $guiasCategorias[$nomeCategoria] ?? ['descricao' => 'Explore os produtos desta categoria.', 'guia' => 'Compare as opções disponíveis.']; ?>
       <a class="cat" href="#categoria-<?= (int)$categoria['id_categoria'] ?>">
-        <span class="cat-icon"><?= $categoria['nome_categoria'] === 'MAQUINAS' ? 'M' : 'P' ?></span>
-        <span><strong><?= h($categoria['nome_categoria']) ?></strong><small><?= (int)$categoria['total_produtos'] ?> produtos</small></span>
+        <span class="cat-icon"><?= $nomeCategoria === 'MAQUINAS' ? 'M' : ($nomeCategoria === 'PERIFERICOS' ? 'P' : 'V') ?></span>
+        <span class="cat-copy"><strong><?= h($nomeCategoria === 'MAQUINAS' ? 'Máquinas' : ($nomeCategoria === 'PERIFERICOS' ? 'Periféricos' : 'Variados')) ?></strong><small><?= (int)$categoria['total_produtos'] ?> produtos</small><span class="cat-description"><?= h($guiaCard['descricao']) ?></span></span>
+        <span class="cat-arrow" aria-hidden="true">→</span>
       </a>
     <?php endforeach; ?>
   </section>
 
+  <?php endif; ?>
+
+  <?php if ($mostrarOfertas): ?>
   <section class="section" id="ofertas">
     <div class="section-head">
       <div>
-        <h2>Escolhas para o seu próximo momento</h2>
-        <p>Produtos selecionados para tornar seu setup mais eficiente.</p>
+        <h2>Ofertas</h2>
+        <p>Somente produtos com desconto ativo no catálogo.</p>
       </div>
+      <a class="link" href="index.php#categorias">Voltar para categorias →</a>
+    </div>
+    <?php if ($termoBusca !== ''): ?><div class="search-result-info">Resultados para <strong><?= h($termoBusca) ?></strong></div><?php endif; ?>
+    <?php
+      $padraoBusca = '%' . $termoBusca . '%';
+      $consultaOfertas->execute([$termoBusca, $padraoBusca, $padraoBusca, $padraoBusca]);
+      $produtosOferta = $consultaOfertas->fetchAll();
+    ?>
+    <?php if (!$produtosOferta): ?>
+      <p class="empty-products">Nenhum produto com desconto foi encontrado<?= $termoBusca !== '' ? ' para essa busca' : '' ?>.</p>
+    <?php else: ?>
+      <div class="products">
+        <?php foreach ($produtosOferta as $produtoOferta) { renderizarCardProduto($produtoOferta); } ?>
+      </div>
+    <?php endif; ?>
+  </section>
+  <?php else: ?>
+  <section class="section" id="catalogo">
+    <div class="section-head">
+      <div><h2>Produtos por categoria</h2><p>Explore máquinas, periféricos e outros itens de tecnologia.</p></div>
       <?php if (tipoUsuario() === 'vendedor'): ?>
         <a class="link" href="vendedor/index.php">Gerenciar meus produtos →</a>
       <?php else: ?>
-        <a class="link" href="#categorias">Explorar categorias →</a>
+        <a class="link" href="index.php?ofertas=1#ofertas">Ver ofertas →</a>
       <?php endif; ?>
     </div>
-
     <?php foreach ($categorias as $categoria): ?>
       <?php
-        $consultaProdutos->execute([(int)$categoria['id_categoria']]);
+        $padraoBusca = '%' . $termoBusca . '%';
+        $consultaProdutos->execute([(int)$categoria['id_categoria'], $termoBusca, $padraoBusca, $padraoBusca, $padraoBusca]);
         $produtosCategoria = $consultaProdutos->fetchAll();
+        $nomeCategoria = strtoupper(trim((string)$categoria['nome_categoria']));
+        $guiaSecao = $guiasCategorias[$nomeCategoria] ?? ['descricao' => 'Explore os produtos desta categoria.', 'guia' => 'Compare as opções disponíveis.'];
       ?>
       <section class="category-section" id="categoria-<?= (int)$categoria['id_categoria'] ?>">
         <div class="category-heading">
-          <h3><?= h($categoria['nome_categoria']) ?></h3>
+          <h3><?= h($nomeCategoria === 'MAQUINAS' ? 'Máquinas' : ($nomeCategoria === 'PERIFERICOS' ? 'Periféricos' : 'Variados')) ?></h3>
           <span><?= count($produtosCategoria) ?> produto(s)</span>
         </div>
+        <div class="category-guide"><strong>Guia da categoria</strong><p><?= h($guiaSecao['descricao']) ?> <?= h($guiaSecao['guia']) ?></p></div>
         <?php if (!$produtosCategoria): ?>
           <p class="empty-products">Ainda não há produtos nesta categoria.</p>
         <?php else: ?>
           <div class="products">
-            <?php foreach ($produtosCategoria as $produto):
-              $desconto = (float)$produto['desconto_produ'];
-              $precoOriginal = (float)$produto['preco_produ'];
-              $precoFinal = $precoOriginal * (1 - $desconto / 100);
-              $imagemProduto = $produto['imagem_produ'] ?: 'imgs/pc.png';
-            ?>
-              <article class="product">
-                <?php if ($desconto > 0): ?>
-                  <span class="badge">-<?= number_format($desconto, 0, ',', '.') ?>%</span>
-                <?php endif; ?>
-                <div class="product-art">
-                  <img src="<?= h($imagemProduto) ?>" alt="<?= h($produto['nome_produ']) ?>" class="product-img" onerror="this.src='imgs/pc.png'">
-                </div>
-                <h3><?= h($produto['nome_produ']) ?></h3>
-                <div class="desc"><?= h($produto['desc_produ'] ?? '') ?></div>
-                <div class="price-row">
-                  <span class="price-wrap">
-                    <?php if ($desconto > 0): ?><span class="old-price">R$ <?= number_format($precoOriginal, 2, ',', '.') ?></span><?php endif; ?>
-                    <span class="price">R$ <?= number_format($precoFinal, 2, ',', '.') ?></span>
-                  </span>
-                  <a class="buy" href="compra.php?id=<?= (int)$produto['id_produ'] ?>">Comprar</a>
-                </div>
-              </article>
-            <?php endforeach; ?>
+            <?php foreach ($produtosCategoria as $produto) { renderizarCardProduto($produto); } ?>
           </div>
         <?php endif; ?>
       </section>
     <?php endforeach; ?>
   </section>
+  <?php endif; ?>
 
   <section class="time-banner" id="sobre">
     <div class="time-box">
@@ -793,12 +958,11 @@ $consultaProdutos = $pdo->prepare(
   <div class="footer-inner">
     <div>
       <strong>CHRONNUS</strong>
-      <p>Tecnologia no seu tempo.</p>
+      <p>Tecnologia no seu tempo.</p><p>Propriedade intelectual: Vitor Lima e Enzo Santana.</p>
     </div>
     <div class="footer-links">
-      <a href="#inicio">Início</a>
-      <a href="#categorias">Categorias</a>
-      <a href="#ofertas">Ofertas</a>
+      <a href="index.php#categorias">Categorias</a>
+      <a href="index.php?ofertas=1#ofertas">Ofertas</a>
       <a href="#sobre">Sobre</a>
     </div>
   </div>
@@ -809,13 +973,15 @@ $consultaProdutos = $pdo->prepare(
   const slides = document.querySelectorAll('.slide');
   const dots = document.querySelectorAll('.dot-btn');
   const counter = document.getElementById('current');
+  const carousel = document.querySelector('.carousel');
   let timer;
 
   function renderSlide(index){
+    if (!slides.length) return;
     currentSlide = (index + slides.length) % slides.length;
     slides.forEach((slide,i)=>slide.classList.toggle('active', i === currentSlide));
     dots.forEach((dot,i)=>dot.classList.toggle('active', i === currentSlide));
-    counter.textContent = String(currentSlide + 1).padStart(2,'0');
+    if (counter) counter.textContent = String(currentSlide + 1).padStart(2,'0');
   }
 
   function nextSlide(){ renderSlide(currentSlide + 1); restartTimer(); }
@@ -823,22 +989,22 @@ $consultaProdutos = $pdo->prepare(
   function goToSlide(index){ renderSlide(index); restartTimer(); }
 
   function restartTimer(){
+    if (!carousel) return;
     clearInterval(timer);
     timer = setInterval(()=>renderSlide(currentSlide + 1), 6500);
   }
 
-  const carousel = document.querySelector('.carousel');
-  carousel.addEventListener('mouseenter', ()=>clearInterval(timer));
-  carousel.addEventListener('mouseleave', restartTimer);
-
-  let touchStart = 0;
-  carousel.addEventListener('touchstart', e => touchStart = e.changedTouches[0].clientX, {passive:true});
-  carousel.addEventListener('touchend', e => {
-    const delta = e.changedTouches[0].clientX - touchStart;
-    if(Math.abs(delta) > 45) delta < 0 ? nextSlide() : prevSlide();
-  }, {passive:true});
-
-  restartTimer();
+  if (carousel) {
+    carousel.addEventListener('mouseenter', ()=>clearInterval(timer));
+    carousel.addEventListener('mouseleave', restartTimer);
+    let touchStart = 0;
+    carousel.addEventListener('touchstart', e => touchStart = e.changedTouches[0].clientX, {passive:true});
+    carousel.addEventListener('touchend', e => {
+      const delta = e.changedTouches[0].clientX - touchStart;
+      if(Math.abs(delta) > 45) delta < 0 ? nextSlide() : prevSlide();
+    }, {passive:true});
+    restartTimer();
+  }
 </script>
 </body>
 </html>

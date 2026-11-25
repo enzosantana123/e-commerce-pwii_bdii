@@ -56,6 +56,16 @@ function exigirLogin(): void
     }
 }
 
+function atualizarTipoUsuario(PDO $pdo): void
+{
+    if (!usuarioLogado()) return;
+    $stmt = $pdo->prepare('SELECT tipo_usuario FROM usuario WHERE id_usuario = ?');
+    $stmt->execute([(int)$_SESSION['usuario_id']]);
+    $tipo = $stmt->fetchColumn();
+    if (!$tipo) { $_SESSION = []; exigirLogin(); }
+    $_SESSION['usuario_tipo'] = $tipo;
+}
+
 function exigirVendedor(): void
 {
     exigirLogin();

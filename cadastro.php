@@ -2,6 +2,8 @@
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/config/conexao.php';
 
+if (usuarioLogado()) { header('Location: usuario.php'); exit; }
+
 $erro = '';
 $tipo = $_POST['tipo'] ?? ($_GET['tipo'] ?? 'cliente');
 $tipo = in_array($tipo, ['cliente', 'vendedor'], true) ? $tipo : 'cliente';

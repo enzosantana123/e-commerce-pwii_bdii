@@ -31,10 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['usuario_tipo'] = $usuario['tipo_usuario'];
             
             $destino = $_GET['redirect'] ?? '';
-            if ($usuario['tipo_usuario'] === 'vendedor') {
-                $destino = 'vendedor/index.php';
-            } elseif (!preg_match('/^compra\.php\?id=\d+$/', $destino)) {
-                $destino = 'index.php';
+            $destinoPermitido = is_string($destino)
+                && ($destino === 'carrinho.php' || preg_match('/^compra\.php\?id=\d+$/D', $destino));
+            if (!$destinoPermitido) {
+                $destino = $usuario['tipo_usuario'] === 'vendedor' ? 'vendedor/index.php' : 'index.php';
             }
             header('Location: ' . $destino);
             exit;

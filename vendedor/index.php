@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../config/conexao.php';
+atualizarTipoUsuario($pdo);
 exigirVendedor();
 
 $idUsuario = (int)$_SESSION['usuario_id'];
@@ -51,7 +52,7 @@ function salvarImagemProduto(array $arquivo): ?string
     return 'uploads/produtos/' . $nomeArquivo;
 }
 
-$categorias = $pdo->query("SELECT id_categoria, nome_categoria FROM categoria WHERE nome_categoria IN ('MAQUINAS', 'PERIFERICOS') ORDER BY nome_categoria")->fetchAll();
+$categorias = $pdo->query("SELECT id_categoria, nome_categoria FROM categoria WHERE nome_categoria IN ('MAQUINAS', 'PERIFERICOS', 'VARIADOS') ORDER BY FIELD(nome_categoria, 'MAQUINAS', 'PERIFERICOS', 'VARIADOS')")->fetchAll();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     validarCsrf();
@@ -63,6 +64,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$idProduto) {
                 throw new RuntimeException('Produto inválido.');
             }
+            // Preserve o histórico de pedidos associados ao produto.
+            $historico = $pdo->prepare('SELECT 1 FROM item_pedido WHERE id_produ = ? LIMIT 1');
+            $historico->execute([$idProduto]);
+            if ($historico->fetch()) { throw new RuntimeException('Produtos com histórico de pedidos não podem ser excluídos.'); }
             $excluir = $pdo->prepare('DELETE FROM produto WHERE id_produ = ? AND id_vende = ?');
             $excluir->execute([$idProduto, $idVendedor]);
             if ($excluir->rowCount() === 0) {
@@ -87,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Confira o nome, a descrição, a categoria, o preço e o desconto.');
             }
 
-            $categoriaValida = $pdo->prepare('SELECT id_categoria FROM categoria WHERE id_categoria = ? AND nome_categoria IN (\'MAQUINAS\', \'PERIFERICOS\')');
+            $categoriaValida = $pdo->prepare('SELECT id_categoria FROM categoria WHERE id_categoria = ? AND nome_categoria IN (\'MAQUINAS\', \'PERIFERICOS\', \'VARIADOS\')');
             $categoriaValida->execute([$idCategoria]);
             if (!$categoriaValida->fetch()) {
                 throw new RuntimeException('Selecione uma das categorias disponíveis.');
@@ -195,7 +200,7 @@ $valorCategoria = $produtoEdicao['id_categoria'] ?? ($categorias[0]['id_categori
             <span><strong>CHRONNUS</strong><small>Painel do vendedor</small></span>
         </a>
         <nav class="acoes-topo">
-            <span>Olá, <?= h(nomeUsuario()) ?></span>
+            <a href="../usuario.php">Olá, <?= h(nomeUsuario()) ?></a>
             <a class="link-topo" href="../index.php">Ver loja</a>
             <a class="link-topo" href="../logout.php">Sair</a>
         </nav>
